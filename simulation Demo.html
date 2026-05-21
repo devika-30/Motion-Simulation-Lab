@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Advanced Motion Simulation | Internship Project</title>
+  <style>
+    :root{
+      --bg1:#07111f;
+      --bg2:#0d1b2a;
+      --panel:#101c2e;
+      --panel2:#14263b;
+      --text:#eaf2ff;
+      --muted:#a7bbcf;
+      --accent:#59b8ff;
+      --accent2:#7fe1ff;
+      --line:rgba(255,255,255,.12);
+      --shadow:0 18px 60px rgba(0,0,0,.28);
+      --radius:20px;
+    }
+
+    *{box-sizing:border-box}
+    html, body{
+      margin:0;
+      padding:0;
+      width:100%;
+      overflow-x:hidden;
+      font-family:Arial, Helvetica, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(89,184,255,.18), transparent 28%),
+        radial-gradient(circle at top right, rgba(127,225,255,.12), transparent 24%),
+        linear-gradient(160deg, var(--bg1), var(--bg2));
+      min-height:100vh;
+    }
+
+    .wrap{
+      width:100%;
+      max-width:none;
+      margin:0;
+      padding:22px;
+    }
+
+    .panel{
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(10px);
+    }
+
+    .topbar{
+      display:grid;
+      grid-template-columns:1.2fr .8fr;
+      gap:18px;
+      margin-bottom:18px;
+    }
+
+    .header{
+      padding:26px;
+      background:linear-gradient(135deg, rgba(89,184,255,.18), rgba(127,225,255,.05));
+    }
+
+    h1{
+      margin:0 0 10px;
+      font-size:2.1rem;
+      letter-spacing:.2px;
+    }
+
+    .sub{
+      margin:0;
+      color:var(--muted);
+      line-height:1.65;
+      max-width:1050px;
+    }
+
+    .tags{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:18px;
+    }
+
+    .tag{
+      padding:8px 12px;
+      border-radius:999px;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.08);
+      color:#dbeaff;
+      font-size:.92rem;
+    }
+
+    .controlbox{
+      padding:20px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      min-height:100%;
+    }
+
+    .btns{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-bottom:14px;
+    }
+
+    button{
+      border:0;
+      border-radius:12px;
+      padding:12px 16px;
+      color:#04131f;
+      background:linear-gradient(135deg, var(--accent), var(--accent2));
+      font-weight:700;
+      cursor:pointer;
+      box-shadow:0 10px 24px rgba(89,184,255,.18);
+    }
+
+    button.secondary{
+      background:rgba(255,255,255,.10);
+      color:var(--text);
+      border:1px solid var(--line);
+      box-shadow:none;
+    }
+
+    .stats{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:12px;
+    }
+
+    .stat{
+      background:rgba(255,255,255,.05);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:14px;
+      text-align:left;
+    }
+
+    .stat span{
+      display:block;
+      color:var(--muted);
+      font-size:.88rem;
+      margin-bottom:6px;
+    }
+
+    .stat strong{
+      font-size:1.15rem;
+    }
+
+    .layout{
+      display:flex;
+      gap:14px;
+      align-items:stretch;
+      min-height:1400px;
+      width:100%;
+    }
+
+    .leftcol{
+      flex:0 0 410px;
+      min-width:320px;
+      display:flex;
+      flex-direction:column;
+      gap:18px;
+      transition:none;
+    }
+
+    .splitter{
+      width:10px;
+      cursor:col-resize;
+      position:relative;
+      flex:0 0 10px;
+      border-radius:999px;
+      background:linear-gradient(180deg, rgba(89,184,255,.45), rgba(127,225,255,.25));
+      box-shadow:0 0 0 1px rgba(255,255,255,.08), 0 0 18px rgba(89,184,255,.25);
+      user-select:none;
+    }
+
+    .splitter::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      margin:auto;
+      width:4px;
+      height:56px;
+      border-radius:999px;
+      background:rgba(255,255,255,.6);
+      top:calc(50% - 28px);
+      left:3px;
+    }
+
+    .rightcol{
+      flex:1 1 auto;
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      gap:18px;
+      transition:none;
+    }
+
+    .section{
+      padding:18px;
+    }
+
+    h2,h3{
+      margin:0 0 12px;
+    }
+
+    h2{
+      font-size:1.25rem;
+    }
+
+    h3{
+      font-size:1.03rem;
+      color:#d6e7ff;
+    }
+
+    .grid2{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px;
+    }
+
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:14px;
+    }
+
+    label{
+      display:block;
+      color:var(--muted);
+      font-size:.9rem;
+      margin:10px 0 6px;
+    }
+
+    input{
+      width:100%;
+      padding:11px 12px;
+      border-radius:10px;
+      border:1px solid var(--line);
+      background:#08111d;
+      color:var(--text);
+      outline:none;
+    }
+
+    input[readonly]{
+      cursor:not-allowed;
+    }
+
+    .diagram{
+      min-height:220px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      border:1px dashed rgba(255,255,255,.16);
+      border-radius:16px;
+      color:var(--muted);
+      text-align:center;
+      padding:16px;
+      line-height:1.7;
+    }
+
+    .big-sim{
+      padding:18px;
+    }
+
+    canvas{
+      width:100%;
+      background:linear-gradient(180deg, #f7fbff, #eef5ff);
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.08);
+      display:block;
+    }
+
+    #simCanvas{
+      height:760px;
+    }
+
+    #graphCanvas{
+      height:300px;
+    }
+
+    #dispCanvas{
+      height:300px;
+    }
+
+    .timeline{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:10px;
+      margin-top:12px;
+    }
+
+    .timeline div{
+      padding:12px;
+      border-radius:12px;
+      background:rgba(255,255,255,.05);
+      border:1px solid var(--line);
+    }
+
+    .small{
+      font-size:.88rem;
+      color:var(--muted);
+      margin-top:4px;
+    }
+
+    .pill-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:10px;
+    }
+
+    .pill{
+      font-size:.86rem;
+      padding:7px 10px;
+      border-radius:999px;
+      background:rgba(89,184,255,.12);
+      border:1px solid rgba(89,184,255,.18);
+      color:#dff1ff;
+    }
+
+    .note{
+      color:var(--muted);
+      font-size:.93rem;
+      line-height:1.7;
+    }
+
+    .footer-note{
+      margin-top:10px;
+      color:var(--muted);
+      font-size:.9rem;
+      line-height:1.65;
+    }
+
+    @media (max-width: 1150px){
+      .topbar,.grid2,.stats,.timeline{
+        grid-template-columns:1fr;
+      }
+      .layout{
+        flex-direction:column;
+      }
+      .leftcol,.rightcol{
+        min-width:0;
+        flex:1 1 auto;
+      }
+      .splitter{
+        display:none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="panel header">
+        <h1>Advanced Motion Simulation</h1>
+        <p class="sub">
+          This includes 1D motion, horizontal train motion, vertical lift motion, ball motion, pendulum time period, weighing machine reading, and live graphs.
+        </p>
+        <div class="tags">
+          <div class="tag">Mechanics → 1D Motion</div>
+          <div class="tag">Train Motion</div>
+          <div class="tag">Lift Motion</div>
+          <div class="tag">Pendulum & Weight</div>
+          <div class="tag">Adjustable View</div>
+        </div>
+      </div>
+
+      <div class="panel controlbox">
+        <div class="btns">
+          <button onclick="start()">Start</button>
+          <button class="secondary" onclick="pause()">Pause</button>
+          <button class="secondary" onclick="reset()">Reset</button>
+        </div>
+        <div class="stats">
+          <div class="stat">
+            <span>Velocity</span>
+            <strong><span id="vel">0.00</span> m/s</strong>
+          </div>
+          <div class="stat">
+            <span>Acceleration</span>
+            <strong><span id="acc">0.50</span> m/s²</strong>
+          </div>
+          <div class="stat">
+            <span>Speed</span>
+            <strong><span id="speed">0.00</span> m/s</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="layout" id="layout">
+      <div class="leftcol" id="leftcol">
+        <div class="panel section">
+          <h2>1. Mechanics → 1D Motion</h2>
+          <div class="grid2">
+            <div class="card">
+              <h3>(i) Horizontal Motion in a Train</h3>
+              <label>Reference frame</label>
+              <input value="Ground" readonly>
+              <label>Initial velocity of train</label>
+              <input id="trainV0" type="number" value="0" step="0.1">
+              <label>Acceleration of train</label>
+              <input id="trainA" type="number" value="0.5" step="0.1">
+              <div class="pill-row">
+                <div class="pill">train</div>
+                <div class="pill">Person on ground measuring</div>
+                <div class="pill">Relative motion</div>
+              </div>
+            </div>
+            <div class="card">
+              <h3>Diagram Section</h3>
+              <div class="diagram">
+                <svg viewBox="0 0 520 220" width="100%" height="220" role="img" aria-label="Train motion diagram">
+                  <defs>
+                    <marker id="arrowTrain" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+                      <path d="M0,0 L0,6 L9,3 z" fill="#59b8ff"></path>
+                    </marker>
+                  </defs>
+                  <rect x="20" y="150" width="480" height="18" rx="8" fill="#8aa1bb" />
+                  <rect x="110" y="95" width="250" height="45" rx="10" fill="#243b55" />
+                  <rect x="135" y="105" width="200" height="14" rx="6" fill="#dbeaff" />
+                  <circle cx="155" cy="145" r="18" fill="#1f2937" />
+                  <circle cx="315" cy="145" r="18" fill="#1f2937" />
+                  <circle cx="155" cy="145" r="8" fill="#94a3b8" />
+                  <circle cx="315" cy="145" r="8" fill="#94a3b8" />
+                  <line x1="365" y1="120" x2="455" y2="120" stroke="#59b8ff" stroke-width="4" marker-end="url(#arrowTrain)" />
+                  <text x="372" y="110" fill="#1f2937" font-size="14" font-family="Arial">Motion</text>
+                  <rect x="420" y="70" width="14" height="100" fill="#0f1b2a" />
+                  <circle cx="427" cy="52" r="12" fill="#0f1b2a" />
+                  <line x1="427" y1="64" x2="427" y2="110" stroke="#0f1b2a" stroke-width="4" />
+                  <text x="390" y="40" fill="#1f2937" font-size="14" font-family="Arial">Observer</text>
+                  <text x="118" y="186" fill="#1f2937" font-size="14" font-family="Arial">Train on track</text>
+                  <text x="18" y="24" fill="#1f2937" font-size="15" font-family="Arial">Horizontal Train Motion</text>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid2" style="margin-top:14px;">
+            <div class="card">
+              <h3>Ball Motion Inputs</h3>
+              <label>Velocity of ball</label>
+              <input id="ballV" type="number" value="0" step="0.1">
+              <label>Acceleration given to ball</label>
+              <input id="ballA" type="number" value="0.5" step="0.1">
+              <div class="timeline">
+                <div>
+                  <strong>Displacement-Time</strong>
+                  <div class="small">Shows how position changes with time</div>
+                </div>
+                <div>
+                  <strong>Velocity-Time</strong>
+                  <div class="small">Shows velocity change with time</div>
+                </div>
+                <div>
+                  <strong>Acceleration-Time</strong>
+                  <div class="small">Shows acceleration change with time</div>
+                </div>
+              </div>
+            </div>
+            <div class="card big-sim">
+              <h3>Simulation View</h3>
+              <canvas id="simCanvas" width="1200" height="760"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel section">
+          <h2>2. Vertical Motion in a Lift</h2>
+          <div class="grid2">
+            <div class="card">
+              <h3>Lift System</h3>
+              <label>Lift acceleration</label>
+              <input id="liftA" type="number" value="0.5" step="0.1">
+              <label>Ball initial velocity option</label>
+              <input id="liftV0" type="number" value="0" step="0.1">
+              <label>Weighing machine reading</label>
+              <input id="weight" value="Normal reading" readonly>
+              <div class="pill-row">
+                <div class="pill">lift</div>
+                <div class="pill">ball inside lift</div>
+                <div class="pill">weighing machine</div>
+              </div>
+            </div>
+            <div class="card">
+              <h3>Simple Pendulum</h3>
+              <label>Length of pendulum (m)</label>
+              <input id="pendulumL" type="number" value="1" step="0.1">
+              <label>Gravity (m/s²)</label>
+              <input id="gravity" type="number" value="9.8" step="0.1">
+              <p class="note">Time period display: <strong id="period">2.01 s</strong></p>
+              <p class="note">
+                The pendulum section reflects the usual PhET lab style with a readable period display and simple controls.
+              </p>
+            </div>
+          </div>
+
+          <div class="grid2" style="margin-top:14px;">
+            <div class="card">
+              <h3>Lift & Pendulum Diagram</h3>
+              <div class="diagram">
+                <svg viewBox="0 0 520 220" width="100%" height="220" role="img" aria-label="Lift and pendulum diagram">
+                  <defs>
+                    <marker id="arrowLiftUp" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+                      <path d="M0,0 L0,6 L9,3 z" fill="#59b8ff"></path>
+                    </marker>
+                    <marker id="arrowLiftDown" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+                      <path d="M0,0 L0,6 L9,3 z" fill="#7fe1ff"></path>
+                    </marker>
+                  </defs>
+                  <rect x="35" y="30" width="150" height="170" rx="18" fill="#dbeaff" stroke="#243b55" stroke-width="3" />
+                  <rect x="55" y="52" width="110" height="110" rx="10" fill="#ffffff" stroke="#8aa1bb" stroke-width="2" />
+                  <rect x="82" y="122" width="56" height="18" rx="6" fill="#cfd9e6" />
+                  <circle cx="110" cy="100" r="12" fill="#ff5e57" />
+                  <line x1="110" y1="112" x2="110" y2="122" stroke="#1f2937" stroke-width="3" />
+                  <text x="62" y="48" fill="#1f2937" font-size="14" font-family="Arial">Lift cabin</text>
+                  <text x="78" y="156" fill="#1f2937" font-size="12" font-family="Arial">Scale</text>
+                  <line x1="220" y1="52" x2="220" y2="168" stroke="#243b55" stroke-width="4" />
+                  <line x1="220" y1="52" x2="320" y2="122" stroke="#243b55" stroke-width="4" />
+                  <circle cx="320" cy="122" r="14" fill="#ff5e57" />
+                  <line x1="220" y1="52" x2="248" y2="72" stroke="#59b8ff" stroke-width="3" marker-end="url(#arrowLiftUp)" />
+                  <line x1="220" y1="70" x2="248" y2="90" stroke="#7fe1ff" stroke-width="3" marker-end="url(#arrowLiftDown)" />
+                  <text x="230" y="46" fill="#1f2937" font-size="14" font-family="Arial">Pivot</text>
+                  <text x="300" y="150" fill="#1f2937" font-size="14" font-family="Arial">Pendulum bob</text>
+                  <text x="250" y="108" fill="#1f2937" font-size="13" font-family="Arial">L</text>
+                  <text x="18" y="24" fill="#1f2937" font-size="15" font-family="Arial">Lift and Pendulum Setup</text>
+                </svg>
+              </div>
+            </div>
+            <div class="card">
+              <h3>Graphs</h3>
+              <canvas id="dispCanvas" width="1200" height="300"></canvas>
+              <canvas id="graphCanvas" width="1200" height="300" style="margin-top:14px;"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="splitter" id="splitter" title="Drag to resize"></div>
+
+      <div class="rightcol" id="rightcol">
+        <div class="panel section">
+          <h2>Simulation Notes</h2>
+          <p class="note">
+            Drag the divider to resize the simulation view and control panel. This helps users understand the motion better by adjusting the visible space.
+          </p>
+          <p class="note">
+            The object motion, graphs, and readings are arranged like a virtual lab: wide viewport, simple buttons, and clear input cards.
+          </p>
+        </div>
+
+        <div class="panel section">
+          <h2>Project Description</h2>
+          <p class="note">
+            
+          </p>
+          <p class="footer-note">
+            This simulation demonstrates multiple physics concepts including 1D motion, train motion, lift motion, ball dynamics, and pendulum behavior. It allows users to adjust parameters like velocity and acceleration, observe real-time motion, and analyze results through dynamic graphs, improving understanding of motion and related principles.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const layout = document.getElementById('layout');
+    const leftcol = document.getElementById('leftcol');
+    const splitter = document.getElementById('splitter');
+    const rightcol = document.getElementById('rightcol');
+
+    let isResizing = false;
+
+    splitter.addEventListener('mousedown', () => {
+      isResizing = true;
+      document.body.style.userSelect = 'none';
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if(!isResizing) return;
+
+      const rect = layout.getBoundingClientRect();
+      const minLeft = 320;
+      const minRight = 80;
+      let newLeft = e.clientX - rect.left;
+
+      if(newLeft < minLeft) newLeft = minLeft;
+      if(newLeft > rect.width - minRight - 10) newLeft = rect.width - minRight - 10;
+
+      leftcol.style.flex = `0 0 ${newLeft}px`;
+      rightcol.style.flex = `1 1 auto`;
+    });
+
+    window.addEventListener('mouseup', () => {
+      isResizing = false;
+      document.body.style.userSelect = '';
+    });
+
+    const canvas = document.getElementById("simCanvas");
+    const ctx = canvas.getContext("2d");
+    const graphCanvas = document.getElementById("graphCanvas");
+    const gtx = graphCanvas.getContext("2d");
+    const dispCanvas = document.getElementById("dispCanvas");
+    const dtx = dispCanvas.getContext("2d");
+
+    let x, v, a, running=false, data=[], time=0;
+
+    function updatePendulumPeriod(){
+      const L = parseFloat(document.getElementById("pendulumL").value) || 1;
+      const g = parseFloat(document.getElementById("gravity").value) || 9.8;
+      const T = 2 * Math.PI * Math.sqrt(L / g);
+      document.getElementById("period").innerText = T.toFixed(2) + " s";
+    }
+
+    function updateWeightReading(){
+      const liftA = parseFloat(document.getElementById("liftA").value) || 0;
+      let reading = "Normal reading";
+      if (liftA > 0) reading = "Apparent weight increases";
+      if (liftA < 0) reading = "Apparent weight decreases";
+      document.getElementById("weight").value = reading;
+    }
+
+    function updateUI(){
+      document.getElementById("vel").innerText = v.toFixed(2);
+      document.getElementById("acc").innerText = a.toFixed(2);
+      document.getElementById("speed").innerText = Math.abs(v).toFixed(2);
+      updatePendulumPeriod();
+      updateWeightReading();
+    }
+
+    function init(){
+      x = 160;
+      v = parseFloat(document.getElementById("ballV").value) || 0;
+      a = parseFloat(document.getElementById("ballA").value) || 0.5;
+      time = 0;
+      data = [];
+      updateUI();
+      draw();
+      drawGraph();
+      drawDisplacementGraph();
+    }
+
+    function drawBackground(){
+      const grad = ctx.createLinearGradient(0,0,canvas.width,canvas.height);
+      grad.addColorStop(0,"#eaf4ff");
+      grad.addColorStop(1,"#dbeeff");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+
+      ctx.fillStyle = "rgba(39,74,120,.12)";
+      for(let i=0;i<canvas.width;i+=45){
+        ctx.fillRect(i,0,1,canvas.height);
+      }
+
+      ctx.fillStyle = "#2a3e54";
+      ctx.fillRect(80,250,1040,44);
+
+      ctx.fillStyle = "#cfd9e6";
+      ctx.fillRect(90,260,1020,20);
+
+      ctx.fillStyle = "#8aa1bb";
+      ctx.fillRect(0,440,canvas.width,14);
+
+      ctx.fillStyle = "#546b86";
+      ctx.fillRect(36,292,130,20);
+      ctx.fillRect(1035,292,130,20);
+
+      ctx.fillStyle = "#1f2d3d";
+      ctx.font = "20px Arial";
+      ctx.fillText("Ground reference frame", 28, 42);
+    }
+
+    function draw(){
+      drawBackground();
+
+      ctx.fillStyle = "#0f1b2a";
+      ctx.fillRect(60,120,30,170);
+      ctx.fillRect(1095,120,30,170);
+
+      ctx.fillStyle = "#ff5e57";
+      ctx.beginPath();
+      ctx.arc(x,230,18,0,Math.PI*2);
+      ctx.fill();
+
+      ctx.fillStyle = "#1f2d3d";
+      ctx.font = "18px Arial";
+      ctx.fillText("Ball", x-14, 276);
+
+      ctx.fillStyle = "#243b55";
+      ctx.font = "18px Arial";
+      ctx.fillText("Train", 520, 228);
+
+      ctx.fillStyle = "#243b55";
+      ctx.fillRect(470,180,320,58);
+      ctx.fillStyle = "#dbeaff";
+      ctx.fillRect(490,192,280,18);
+
+      ctx.fillStyle = "#0f1b2a";
+      ctx.font = "17px Arial";
+      ctx.fillText("Person on ground measuring", 785, 92);
+
+      ctx.fillRect(805,112,22,200);
+      ctx.fillRect(792,308,48,30);
+
+      ctx.fillStyle = "#0f1b2a";
+      ctx.font = "16px Arial";
+      ctx.fillText("Measurement setup", 740, 360);
+    }
+
+    function update(){
+      const dt = 0.1;
+      const av = parseFloat(document.getElementById("ballA").value);
+      const vv = parseFloat(document.getElementById("ballV").value);
+      a = isNaN(av) ? 0.5 : av;
+      if (time === 0) v = isNaN(vv) ? 0 : vv;
+
+      v += a * dt;
+      x += v * dt * 10;
+      time += dt;
+
+      if(x > canvas.width - 20){
+        x = canvas.width - 20;
+        v *= -0.4;
+      }
+      if(x < 20){
+        x = 20;
+        v *= -0.4;
+      }
+
+      data.push({ t:time, v:v, a:a, x:x });
+      updateUI();
+    }
+
+    function drawGraph(){
+      gtx.fillStyle = "#ffffff";
+      gtx.fillRect(0,0,graphCanvas.width,graphCanvas.height);
+
+      gtx.strokeStyle = "#d7e4f5";
+      gtx.lineWidth = 1;
+      for(let i=0;i<graphCanvas.width;i+=45){
+        gtx.beginPath();
+        gtx.moveTo(i,0);
+        gtx.lineTo(i,graphCanvas.height);
+        gtx.stroke();
+      }
+      for(let j=0;j<graphCanvas.height;j+=40){
+        gtx.beginPath();
+        gtx.moveTo(0,j);
+        gtx.lineTo(graphCanvas.width,j);
+        gtx.stroke();
+      }
+
+      gtx.fillStyle = "#1f2937";
+      gtx.font = "16px Arial";
+      gtx.fillText("Blue: Velocity-Time", 16, 24);
+      gtx.fillText("Green: Acceleration-Time", 16, 48);
+
+      gtx.strokeStyle = "#2563eb";
+      gtx.lineWidth = 3;
+      gtx.beginPath();
+      data.forEach((p,i)=>{
+        const gx = 50 + p.t * 30;
+        const gy = graphCanvas.height - 55 - p.v * 12;
+        if(i===0) gtx.moveTo(gx,gy);
+        else gtx.lineTo(gx,gy);
+      });
+      gtx.stroke();
+
+      gtx.strokeStyle = "#16a34a";
+      gtx.beginPath();
+      data.forEach((p,i)=>{
+        const gx = 50 + p.t * 30;
+        const gy = graphCanvas.height - 95 - p.a * 18;
+        if(i===0) gtx.moveTo(gx,gy);
+        else gtx.lineTo(gx,gy);
+      });
+      gtx.stroke();
+    }
+
+    function drawDisplacementGraph(){
+      dtx.fillStyle = "#ffffff";
+      dtx.fillRect(0,0,dispCanvas.width,dispCanvas.height);
+
+      dtx.strokeStyle = "#d7e4f5";
+      dtx.lineWidth = 1;
+      for(let i=0;i<dispCanvas.width;i+=45){
+        dtx.beginPath();
+        dtx.moveTo(i,0);
+        dtx.lineTo(i,dispCanvas.height);
+        dtx.stroke();
+      }
+      for(let j=0;j<dispCanvas.height;j+=40){
+        dtx.beginPath();
+        dtx.moveTo(0,j);
+        dtx.lineTo(dispCanvas.width,j);
+        dtx.stroke();
+      }
+
+      dtx.fillStyle = "#1f2937";
+      dtx.font = "16px Arial";
+      dtx.fillText("Red: Displacement-Time", 16, 24);
+
+      dtx.strokeStyle = "#ef4444";
+      dtx.lineWidth = 3;
+      dtx.beginPath();
+      data.forEach((p,i)=>{
+        const disp = p.x - 160;
+        const gx = 50 + p.t * 30;
+        const gy = dispCanvas.height - 55 - disp * 1.2;
+        if(i===0) dtx.moveTo(gx,gy);
+        else dtx.lineTo(gx,gy);
+      });
+      dtx.stroke();
+    }
+
+    function loop(){
+      if(!running) return;
+      update();
+      draw();
+      drawGraph();
+      drawDisplacementGraph();
+      requestAnimationFrame(loop);
+    }
+
+    function start(){ running = true; loop(); }
+    function pause(){ running = false; }
+    function reset(){ running = false; init(); }
+
+    document.getElementById("ballA").addEventListener("input", updateUI);
+    document.getElementById("ballV").addEventListener("input", updateUI);
+    document.getElementById("liftA").addEventListener("input", updateUI);
+    document.getElementById("pendulumL").addEventListener("input", updateUI);
+    document.getElementById("gravity").addEventListener("input", updateUI);
+
+    init();
+  </script>
+</body>
+</html>s
